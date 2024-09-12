@@ -1,11 +1,10 @@
+import { createVerify } from 'node:crypto'
+import querystring from 'node:querystring'
+import debugLib from 'debug'
+import type KeyDictCache from './keydict/cache/cache'
+import KeyProvider, { type KeyProviderInterface } from './keydict/provider'
 
-import querystring from 'querystring';
-import {createVerify} from 'crypto';
-import debugLib from 'debug';
-import {KeyDictCache} from './keydict/cache/cache';
-import KeyProvider, {KeyProviderInterface} from './keydict/provider';
-
-const debug = debugLib('admob-ssv:verifier');
+const debug = debugLib('admob-ssv:verifier')
 
 /**
  * Usable message object
@@ -16,9 +15,9 @@ const debug = debugLib('admob-ssv:verifier');
  * @property {Buffer} body Union qs attributes as buffer
  */
 export interface ParsedMessage {
-    keyId: number;
-    signature: Buffer;
-    body: Buffer;
+  keyId: number
+  signature: Buffer
+  body: Buffer
 }
 
 /**
@@ -29,8 +28,8 @@ export interface ParsedMessage {
  * @property {KeyDictCache} keyCache If keyProvider is not defined, use custom KeyDictCache
  */
 export interface VerifierOptions {
-    keyProvider?: KeyProviderInterface;    
-    keyCache?: KeyDictCache;
+  keyProvider?: KeyProviderInterface
+  keyCache?: KeyDictCache
 }
 
 /**
@@ -40,8 +39,8 @@ export interface VerifierOptions {
  * @returns {object} key, value dictionary from querystring
  */
 export function parseQueryString(raw: string): object {
-    debug(`Parsing query string`);
-    return querystring.parse(raw);
+  debug(`Parsing query string`)
+  return querystring.parse(raw)
 }
 
 /**
@@ -50,77 +49,66 @@ export function parseQueryString(raw: string): object {
  * @param {object} data Raw key: value dicto
  * @returns {ParsedMessage} Usable message
  */
-export function parseMessage(data: object): ParsedMessage {
-    debug(`Parsing message`);
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    const {key_id, signature} = data;
-    const fdata = {...data};
-    delete fdata.key_id;
-    delete fdata.signature;
-    // Sort atttributes
-    const qs = querystring.stringify(fdata)
-        .split('&')
-        .sort()
-        .join('&')
-    ;
+export function parseMessage(data: Record<string, any>): ParsedMessage {
+  debug(`Parsing message`)
+  const { key_id, signature, ...fdata } = data
+  // Sort atttributes
+  const qs = querystring.stringify(fdata).split('&').sort().join('&')
 
-    return {
-        keyId: parseInt(key_id, 10),
-        signature: Buffer.from(signature, 'base64'),
-        body: Buffer.from(qs, 'utf8')
-    }
+  return {
+    keyId: Number.parseInt(key_id, 10),
+    signature: Buffer.from(signature, 'base64'),
+    body: Buffer.from(qs, 'utf8'),
+  }
 }
 
 /**
  * Verifier class
  */
 export default class Verifier {
+  private keyProvider: KeyProviderInterface
 
-    private keyProvider: KeyProviderInterface;
+  /**
+   * Create new verifier
+   */
+  constructor(options: VerifierOptions = {}) {
+    this.keyProvider =
+      options.keyProvider ||
+      new KeyProvider({
+        cache: options.keyCache,
+      })
+  }
 
-    /**
-     * Create new verifier
-     *
-     * @param {VerifierOptions} [options] Verifier options
-     */
-    constructor(options? = {}): void {
-        this.keyProvider = options.keyProvider || new KeyProvider({
-            cache: options.keyCache || null,
-        });
+  /**
+   * Verify data
+   *
+   * @param data Raw Data
+   * @returns True if is verified
+   */
+  async verify(data: ParsedMessage | object | string) {
+    debug(`Verify`)
+
+    const parsedData =
+      typeof data === 'string'
+        ? parseMessage(parseQueryString(data))
+        : !(data as any).body
+          ? parseMessage(data)
+          : (data as ParsedMessage)
+
+    const { keyId, signature, body } = parsedData
+
+    debug(`\tGetting key ${keyId}`)
+
+    const key = await this.keyProvider.get(keyId)
+
+    if (!key) {
+      throw new Error('Key not found')
     }
 
-    /**
-     * Verify data
-     *
-     * @param {ParsedMessage|object|string} data Raw Data
-     * @returns {Promise<boolean>} True if is verified
-     */
-    async verify(data: ParsedMessage | object | string): Promise<boolean> {
-        debug(`Verify`);
+    const verifier = createVerify('RSA-SHA256')
+    verifier.update(body)
 
-        if (typeof data === 'string') {
-            data = parseMessage(parseQueryString(data));
-        } else if (!data.body) {
-            data = parseMessage(data);
-        }
-
-        const {keyId, signature, body} = data;
-
-        debug(`\tGetting key ${keyId}`);
-
-        const key = await this.keyProvider.get(keyId);
-
-        if (!key) {
-            throw new Error('Key not found');
-        }
-
-        const verifier = createVerify('RSA-SHA256');
-        verifier.update(body);
-
-        debug(`\tVerifying`);
-        return verifier.verify(
-            key,
-            signature,
-        );
-    }
+    debug(`\tVerifying`)
+    return verifier.verify(key, signature)
+  }
 }

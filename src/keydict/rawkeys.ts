@@ -1,6 +1,5 @@
-
 export default interface RawKeyRegister {
-    keyId: number;
-    pem: string;
-    base64?: string;
+  keyId: number
+  pem: string
+  base64?: string
 }

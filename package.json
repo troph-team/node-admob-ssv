@@ -1,18 +1,18 @@
 {
-  "name": "@exoshtw/admob-ssv",
-  "version": "0.1.0",
+  "name": "admob-ssv",
+  "version": "0.1.1",
   "description": "Tool for validate AdMob rewarded ads signatures SSV",
-  "main": "lib/index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "types/index.d.ts",
   "scripts": {
-    "test": "npx jest",
-    "lint": "npx eslint './src/**/*.{t,j}s'",
-    "build": "rm -rf lib/**; npx babel src --extensions '.ts' --out-dir lib --copy-files",
-    "prepublish": "npm run lint",
-    "prepare": "npm run build"
+    "test": "vitest",
+    "build": "./scripts/build.sh",
+    "prepublishOnly": "yarn build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/exoshtw/node-admob-ssv.git"
+    "url": "git+https://github.com/cnwangjie/node-admob-ssv.git"
   },
   "keywords": [
     "AdMob",
@@ -22,47 +22,28 @@
     "Rewarded",
     "ad"
   ],
-  "author": "exos <exos@kaktheplanet.xyz>",
+  "author": "Wang Jie <i@i8e.net>",
   "license": "GPL-2.0",
-  "husky": {
-    "hooks": {
-      "pre-commit": "./hooks/pre-commit.sh"
-    }
-  },
-  "jest": {
-    "verbose": true,
-    "collectCoverage": true,
-    "testEnvironment": "node",
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "/tests/"
-    ]
-  },
-  "bugs": {
-    "url": "https://github.com/exoshtw/node-admob-ssv/issues"
-  },
-  "homepage": "https://github.com/exoshtw/node-admob-ssv#readme",
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
-    "@babel/core": "^7.9.6",
-    "@babel/node": "^7.8.7",
-    "@babel/plugin-transform-typescript": "^7.9.6",
-    "@babel/preset-env": "^7.9.6",
-    "@babel/preset-typescript": "^7.9.0",
-    "@types/jest": "^25.2.1",
-    "@typescript-eslint/eslint-plugin": "^2.30.0",
-    "@typescript-eslint/parser": "^2.30.0",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-plugin-jest": "^23.8.2",
-    "eslint-plugin-jsdoc": "^24.0.0",
-    "husky": "^4.2.5",
-    "jest": "^25.5.2",
-    "jest-cli": "^25.5.2",
-    "jest-spec-reporter": "^1.0.12",
-    "typescript": "^3.8.3"
+    "@biomejs/biome": "^1.8.3",
+    "@types/node": "^22.5.4",
+    "debug": "^4.3.7",
+    "typescript": "^5.6.2",
+    "vitest": "^2.0.5"
   },
+  "peerDependencies": {
+    "debug": "~4"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
   "dependencies": {
-    "debug": "^4.1.1"
-  }
+    "@types/debug": "^4.1.12"
+  },
+  "files": [
+    "dist",
+    "src",
+    "types",
+    "package.json",
+    "LICENSE",
+    "README.md"
+  ]
 }

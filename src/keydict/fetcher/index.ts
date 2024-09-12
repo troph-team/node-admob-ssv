@@ -1,37 +1,19 @@
+import type RawKeyRegister from '../rawkeys'
+import type KeyFetcher from './fetcher'
+import type { FetcherOptions } from './fetcher'
 
-import https from 'https';
-import KeyFetcher, {FetcherOptions} from './fetcher';
-import RawKeyRegister from '../rawkeys';
-
-const KEY_URL = 'https://www.gstatic.com/admob/reward/verifier-keys.json';
+const KEY_URL = 'https://www.gstatic.com/admob/reward/verifier-keys.json'
 
 export default class SimpleFetcher implements KeyFetcher {
+  async fetch(options: FetcherOptions = {}) {
+    const res = await fetch(options.url || KEY_URL)
 
-    async fetch(options: FetcherOptions = {}): Promise<RawKeyRegister> {
-        options = {
-            url: KEY_URL,
-            ...options,
-        };
-
-        return new Promise((resolve, reject) => {
-            https.get(options.url, (response) => {
-                let data = '';
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                response.once('end', () => {
-                    try {
-                        return resolve(JSON.parse(data).keys);
-                    } catch (e) {
-                        return reject(e);
-                    }
-                });
-            })
-                .on('error', (err) => {
-                    return reject(err);
-                });
-        });
-
+    if (!res.ok) {
+      throw new Error(`Failed to fetch keys: ${res.statusText}`)
     }
+
+    const data = await res.json()
+
+    return data.keys as RawKeyRegister[]
+  }
 }

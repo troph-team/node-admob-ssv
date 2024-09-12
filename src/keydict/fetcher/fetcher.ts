@@ -1,10 +1,9 @@
-
-import RawKeyRegister from '../rawkeys';
+import type RawKeyRegister from '../rawkeys'
 
 export interface FetcherOptions {
-    url?: string;
+  url?: string
 }
 
 export default interface KeyFetcher {
-    fetch(options?: FetcherOptions): Promise<RawKeyRegister[]>;
+  fetch(options?: FetcherOptions): Promise<RawKeyRegister[]>
 }
