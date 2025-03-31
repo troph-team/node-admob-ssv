@@ -1,6 +1,6 @@
 {
   "name": "admob-ssv",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Tool for validate AdMob rewarded ads signatures SSV",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",

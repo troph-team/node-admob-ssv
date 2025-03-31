@@ -4,6 +4,7 @@ export interface FetcherOptions {
   url?: string
 }
 
-export default interface KeyFetcher {
-  fetch(options?: FetcherOptions): Promise<RawKeyRegister[]>
+export default abstract class KeyFetcher {
+  constructor(public options: FetcherOptions = {}) {}
+  abstract fetch(): Promise<RawKeyRegister[]>
 }

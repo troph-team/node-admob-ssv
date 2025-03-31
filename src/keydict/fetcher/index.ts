@@ -5,8 +5,10 @@ import type { FetcherOptions } from './fetcher'
 export const KEY_URL = 'https://www.gstatic.com/admob/reward/verifier-keys.json'
 
 export default class SimpleFetcher implements KeyFetcher {
-  async fetch(options: FetcherOptions = {}) {
-    const res = await fetch(options.url || KEY_URL)
+  constructor(public options: FetcherOptions = {}) {}
+
+  async fetch() {
+    const res = await fetch(this.options.url || KEY_URL)
 
     if (!res.ok) {
       throw new Error(`Failed to fetch keys: ${res.statusText}`)
@@ -18,22 +20,26 @@ export default class SimpleFetcher implements KeyFetcher {
   }
 }
 
+export interface RetryFetcherOptions extends FetcherOptions {
+  maxRetries?: number
+  delay?: number
+}
+
 export class RetryFetcher extends SimpleFetcher implements KeyFetcher {
-  constructor(
-    public maxRetries = 3,
-    public delay = 1000,
-  ) {
-    super()
+  constructor(public options: RetryFetcherOptions = {}) {
+    super(options)
   }
 
-  override async fetch(options: FetcherOptions = {}) {
-    for (let i = this.maxRetries; i > 0; i -= 1) {
+  override async fetch() {
+    const maxRetries = this.options.maxRetries || 3
+    const delay = this.options.delay || 1000
+    for (let i = maxRetries || 3; i > 0; i -= 1) {
       try {
-        return await super.fetch(options)
+        return await super.fetch()
       } catch (err) {
-        await new Promise(resolve => setTimeout(resolve, this.delay))
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
-    throw new Error(`Failed to fetch keys after ${this.maxRetries} retries`)
+    throw new Error(`Failed to fetch keys after ${maxRetries} retries`)
   }
 }
