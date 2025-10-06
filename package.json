@@ -1,5 +1,5 @@
 {
-  "name": "admob-ssv",
+  "name": "@mewtant/admob-ssv",
   "version": "0.3.0",
   "description": "Tool for validate AdMob rewarded ads signatures SSV",
   "main": "dist/cjs/index.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cnwangjie/node-admob-ssv.git"
+    "url": "git+https://github.com/troph-team/node-admob-ssv.git"
   },
   "keywords": [
     "AdMob",
