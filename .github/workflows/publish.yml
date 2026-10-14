@@ -1,0 +1,73 @@
+name: Publish to CodeArtifact
+
+# Publishes @mewtant/admob-ssv to CodeArtifact (mewtant/pixai) on a release
+# tag. The public npmjs release stays manual: the repository has no npm token,
+# and CodeArtifact authenticates through the GitHub OIDC role instead.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Test
+        run: yarn vitest run
+
+      - name: Build
+        run: yarn build
+
+      # A tag must name the version package.json claims, or the package would
+      # be the only place the mismatch is visible.
+      - name: Verify the tag matches package.json
+        if: github.event_name == 'push'
+        run: |
+          declared=$(node -p "require('./package.json').version")
+          tagged="${GITHUB_REF_NAME#v}"
+          if [ "$tagged" != "$declared" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match package.json version ${declared}. Bump package.json before pushing the tag."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials for CodeArtifact
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::727563295725:role/infra-codeartifact-gha
+          aws-region: us-east-1
+
+      - name: Publish to CodeArtifact
+        run: |
+          token=$(aws codeartifact get-authorization-token --domain mewtant --domain-owner 727563295725 --region us-east-1 --query authorizationToken --output text)
+          echo "::add-mask::${token}"
+          registry=https://mewtant-727563295725.d.codeartifact.us-east-1.amazonaws.com/npm/pixai/
+          printf '%s\n' "@mewtant:registry=${registry}" "//${registry#https://}:_authToken=${token}" > .npmrc
+          set +e
+          # --ignore-scripts: the Build step already ran what prepublishOnly would.
+          npm publish --ignore-scripts 2>&1 | tee "$RUNNER_TEMP/codeartifact-publish.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ]; then
+            if grep -Eiq '409 Conflict|Cannot publish over|previously published|already exists' "$RUNNER_TEMP/codeartifact-publish.log"; then
+              echo "This version is already in CodeArtifact; nothing to do."
+            else
+              exit "$status"
+            fi
+          fi
